@@ -378,3 +378,302 @@ reviewwtest <- testData[testData$predicted == "3" &
 nrow(pegiDataFrame[pegiDataFrame$Rating == "3",])
 reviewwtest <- pegiDataFrame[pegiDataFrame$Rating == "3" &
                                pegiDataFrame$Violence == "Y",]
+
+
+
+
+# thisr model with genre
+salesDataFrame <- read.csv("source/total_sales.csv", 
+                           sep= "|", 
+                           header = TRUE, 
+                           strip.white=TRUE, 
+                           encoding = "UTF-8",
+                           quote=""
+)
+
+# only game from 7th (start 2005) and 8th (start 2012) generation. 
+# Sales data from the vgchartz after 2018 are not complete
+# becasue they dont include online/stream platform sales, 
+str(salesDataFrame)
+salesDataFrame <- salesDataFrame[salesDataFrame$Year >= 2005
+                                 & salesDataFrame$Year <= 2018, ]
+
+#
+# load PEGI descriptor dataset
+#
+pegiDataFrame <- read.csv("source/pegi_all_to2019.csv", 
+                          sep= "|", 
+                          header = TRUE, 
+                          strip.white=TRUE, 
+                          encoding = "UTF-8",
+                          quote=""
+)
+
+
+#
+# Prepare and clean the datasets
+#
+
+# create a new field TITLE for use in the join of dataset
+# columns with uppercase mean are auxiliar columns and
+# dont add more info to analysis
+salesDataFrame$TITTLE <- toupper(salesDataFrame$Pos)
+pegiDataFrame$TITTLE <- toupper(pegiDataFrame$Title)
+
+
+salesDataFrame$TITTLE_URL <- gsub('https://www.vgchartz.com/game',
+                                  '',salesDataFrame$Game, 
+                                  fixed = TRUE, useBytes = FALSE)
+salesDataFrame$TITTLE_URL <- gsub('^/[0-9]+/',
+                                  '',salesDataFrame$TITTLE_URL, 
+                                  fixed = FALSE, useBytes = FALSE)
+salesDataFrame$TITTLE_URL <- gsub('-',' ',salesDataFrame$TITTLE_URL, fixed = TRUE, useBytes = FALSE)
+salesDataFrame$TITTLE_URL <- gsub('/','',salesDataFrame$TITTLE_URL, fixed = TRUE, useBytes = FALSE)
+salesDataFrame$TITTLE_URL <- toupper(salesDataFrame$TITTLE_URL)
+
+#reassign string that looks like a mistake in the datasource
+pegiDataFrame$TITTLE <- gsub('WWE2K','WWE 2K',pegiDataFrame$TITTLE, fixed = TRUE, useBytes = FALSE)
+pegiDataFrame$TITTLE <- gsub('NBA2K','NBA 2K',pegiDataFrame$TITTLE, fixed = TRUE, useBytes = FALSE)
+pegiDataFrame$TITTLE <- gsub('FIFA SOCCER','FIFA',pegiDataFrame$TITTLE, fixed = TRUE, useBytes = FALSE)
+#remove characters that create matching problems
+#pegiDataFrame$TITTLE <- gsub(' COLLECTION','',pegiDataFrame$TITTLE, fixed = TRUE, useBytes = FALSE)
+pegiDataFrame$TITTLE <- gsub(' REMASTERED','',pegiDataFrame$TITTLE, fixed = TRUE, useBytes = FALSE)
+pegiDataFrame$TITTLE <- gsub(' EDITION','',pegiDataFrame$TITTLE, fixed = TRUE, useBytes = FALSE)
+pegiDataFrame$TITTLE <- gsub(' ULTIMATE','',pegiDataFrame$TITTLE, fixed = TRUE, useBytes = FALSE)
+pegiDataFrame$TITTLE <- gsub(' REMIX','',pegiDataFrame$TITTLE, fixed = TRUE, useBytes = FALSE)
+pegiDataFrame$TITTLE <- gsub('IV','4',pegiDataFrame$TITTLE, fixed = TRUE, useBytes = FALSE)
+pegiDataFrame$TITTLE <- gsub('VI','6',pegiDataFrame$TITTLE, fixed = TRUE, useBytes = FALSE)
+pegiDataFrame$TITTLE <- gsub('VII','7',pegiDataFrame$TITTLE, fixed = TRUE, useBytes = FALSE)
+pegiDataFrame$TITTLE <- gsub('VIII','8',pegiDataFrame$TITTLE, fixed = TRUE, useBytes = FALSE)
+pegiDataFrame$TITTLE <- gsub('XII','12',pegiDataFrame$TITTLE, fixed = TRUE, useBytes = FALSE)
+pegiDataFrame$TITTLE <- gsub('III','3',pegiDataFrame$TITTLE, fixed = TRUE, useBytes = FALSE)
+pegiDataFrame$TITTLE <- gsub('II','2',pegiDataFrame$TITTLE, fixed = TRUE, useBytes = FALSE)
+pegiDataFrame$TITTLE <- gsub('+','',pegiDataFrame$TITTLE, fixed = TRUE, useBytes = FALSE)
+pegiDataFrame$TITTLE <- gsub(';','',pegiDataFrame$TITTLE, fixed = TRUE, useBytes = FALSE)
+pegiDataFrame$TITTLE <- gsub(',','',pegiDataFrame$TITTLE, fixed = TRUE, useBytes = FALSE)
+pegiDataFrame$TITTLE <- gsub('™','',pegiDataFrame$TITTLE, fixed = TRUE, useBytes = FALSE)
+pegiDataFrame$TITTLE <- gsub('®','',pegiDataFrame$TITTLE, fixed = TRUE, useBytes = FALSE)
+pegiDataFrame$TITTLE <- gsub("'",'',pegiDataFrame$TITTLE, fixed = TRUE, useBytes = FALSE)
+pegiDataFrame$TITTLE <- gsub("’",'',pegiDataFrame$TITTLE, fixed = TRUE, useBytes = FALSE)
+pegiDataFrame$TITTLE <- gsub('.','',pegiDataFrame$TITTLE, fixed = TRUE, useBytes = FALSE)
+#pegiDataFrame$TITTLE <- gsub(':.*$','',pegiDataFrame$TITTLE, fixed = FALSE, useBytes = FALSE)
+pegiDataFrame$TITTLE <- gsub(':','',pegiDataFrame$TITTLE, fixed = TRUE, useBytes = FALSE)
+pegiDataFrame$TITTLE <- gsub('PS4','',pegiDataFrame$TITTLE, fixed = TRUE, useBytes = FALSE)
+pegiDataFrame$TITTLE <- gsub('-','',pegiDataFrame$TITTLE, fixed = TRUE, useBytes = FALSE)
+pegiDataFrame$TITTLE <- gsub('_','',pegiDataFrame$TITTLE, fixed = TRUE, useBytes = FALSE)
+pegiDataFrame$TITTLE <- gsub('\\(.*\\)','',pegiDataFrame$TITTLE, fixed = FALSE, useBytes = FALSE)
+pegiDataFrame$TITTLE <- gsub('(','',pegiDataFrame$TITTLE, fixed = TRUE, useBytes = FALSE)
+pegiDataFrame$TITTLE <- gsub(')','',pegiDataFrame$TITTLE, fixed = TRUE, useBytes = FALSE)
+pegiDataFrame$TITTLE <- gsub('^\\s+|\\s+$','',pegiDataFrame$TITTLE, fixed = FALSE, useBytes = FALSE)
+pegiDataFrame$TITTLE <- gsub('  ',' ',pegiDataFrame$TITTLE, fixed = TRUE, useBytes = FALSE)
+
+#reassign string that looks like a mistake in the datasource
+salesDataFrame$TITTLE <- gsub('WWE2K','WWE 2K',salesDataFrame$TITTLE, fixed = TRUE, useBytes = FALSE)
+salesDataFrame$TITTLE <- gsub('NBA2K','NBA 2K',salesDataFrame$TITTLE, fixed = TRUE, useBytes = FALSE)
+salesDataFrame$TITTLE <- gsub('FIFA SOCCER','FIFA',salesDataFrame$TITTLE, fixed = TRUE, useBytes = FALSE)
+#remove characters that create matching problems
+#salesDataFrame$TITTLE <- gsub(' COLLECTION','',salesDataFrame$TITTLE, fixed = TRUE, useBytes = FALSE)
+salesDataFrame$TITTLE <- gsub(' REMASTERED','',salesDataFrame$TITTLE, fixed = TRUE, useBytes = FALSE)
+salesDataFrame$TITTLE <- gsub(' EDITION','',salesDataFrame$TITTLE, fixed = TRUE, useBytes = FALSE)
+salesDataFrame$TITTLE <- gsub(' ULTIMATE','',salesDataFrame$TITTLE, fixed = TRUE, useBytes = FALSE)
+salesDataFrame$TITTLE <- gsub(' REMIX','',salesDataFrame$TITTLE, fixed = TRUE, useBytes = FALSE)
+salesDataFrame$TITTLE <- gsub('IV','4',salesDataFrame$TITTLE, fixed = TRUE, useBytes = FALSE)
+salesDataFrame$TITTLE <- gsub('VI','6',salesDataFrame$TITTLE, fixed = TRUE, useBytes = FALSE)
+salesDataFrame$TITTLE <- gsub('VII','7',salesDataFrame$TITTLE, fixed = TRUE, useBytes = FALSE)
+salesDataFrame$TITTLE <- gsub('VIII','8',salesDataFrame$TITTLE, fixed = TRUE, useBytes = FALSE)
+salesDataFrame$TITTLE <- gsub('XII','12',salesDataFrame$TITTLE, fixed = TRUE, useBytes = FALSE)
+salesDataFrame$TITTLE <- gsub('III','3',salesDataFrame$TITTLE, fixed = TRUE, useBytes = FALSE)
+salesDataFrame$TITTLE <- gsub('II','2',salesDataFrame$TITTLE, fixed = TRUE, useBytes = FALSE)
+salesDataFrame$TITTLE <- gsub('+','',salesDataFrame$TITTLE, fixed = TRUE, useBytes = FALSE)
+salesDataFrame$TITTLE <- gsub(';','',salesDataFrame$TITTLE, fixed = TRUE, useBytes = FALSE)
+salesDataFrame$TITTLE <- gsub(',','',salesDataFrame$TITTLE, fixed = TRUE, useBytes = FALSE)
+salesDataFrame$TITTLE <- gsub('™','',salesDataFrame$TITTLE, fixed = TRUE, useBytes = FALSE)
+salesDataFrame$TITTLE <- gsub('®','',salesDataFrame$TITTLE, fixed = TRUE, useBytes = FALSE)
+salesDataFrame$TITTLE <- gsub("'",'',salesDataFrame$TITTLE, fixed = TRUE, useBytes = FALSE)
+salesDataFrame$TITTLE <- gsub("’",'',salesDataFrame$TITTLE, fixed = TRUE, useBytes = FALSE)
+salesDataFrame$TITTLE <- gsub('.','',salesDataFrame$TITTLE, fixed = TRUE, useBytes = FALSE)
+#salesDataFrame$TITTLE <- gsub(':.*$','',salesDataFrame$TITTLE, fixed = FALSE, useBytes = FALSE)
+salesDataFrame$TITTLE <- gsub(':','',salesDataFrame$TITTLE, fixed = TRUE, useBytes = FALSE)
+salesDataFrame$TITTLE <- gsub('PS4','',salesDataFrame$TITTLE, fixed = TRUE, useBytes = FALSE)
+salesDataFrame$TITTLE <- gsub('-','',salesDataFrame$TITTLE, fixed = TRUE, useBytes = FALSE)
+salesDataFrame$TITTLE <- gsub('_','',salesDataFrame$TITTLE, fixed = TRUE, useBytes = FALSE)
+salesDataFrame$TITTLE <- gsub('\\(.*\\)','',salesDataFrame$TITTLE, fixed = FALSE, useBytes = FALSE)
+salesDataFrame$TITTLE <- gsub('(','',salesDataFrame$TITTLE, fixed = TRUE, useBytes = FALSE)
+salesDataFrame$TITTLE <- gsub(')','',salesDataFrame$TITTLE, fixed = TRUE, useBytes = FALSE)
+salesDataFrame$TITTLE <- gsub('^\\s+|\\s+$','',salesDataFrame$TITTLE, fixed = FALSE, useBytes = FALSE)
+salesDataFrame$TITTLE <- gsub('  ',' ',salesDataFrame$TITTLE, fixed = TRUE, useBytes = FALSE)
+
+
+# some levels dont match but there are the same,
+# in somes case in pEGi dataset, there are a online market inside the console
+# and have different sale platform
+# Example: "Playstation 3 HOME","Nintendo DSi - DSiWare" are "Nintendo DS"
+# then have to reset the value for matching
+levels(salesDataFrame$Console.system)
+levels(pegiDataFrame$Console)
+levels(pegiDataFrame$Console)[levels(pegiDataFrame$Console)=="Playstation 3"] <- "PlayStation 3"
+levels(pegiDataFrame$Console)[levels(pegiDataFrame$Console)=="Playstation 3 HOME"] <- "PlayStation 3"
+levels(pegiDataFrame$Console)[levels(pegiDataFrame$Console)=="Game Boy Advance"] <- "Nintendo DS"
+levels(pegiDataFrame$Console)[levels(pegiDataFrame$Console)=="Nintendo 3DS"] <- "Nintendo DS"
+levels(pegiDataFrame$Console)[levels(pegiDataFrame$Console)=="New Nintendo 3DS"] <- "Nintendo DS"
+levels(pegiDataFrame$Console)[levels(pegiDataFrame$Console)=="Nintendo DSi - DSiWare"] <- "Nintendo DS"
+levels(pegiDataFrame$Console)[levels(pegiDataFrame$Console)=="Nintendo Wii - Virtual Console"] <- "Nintendo Wii"
+levels(pegiDataFrame$Console)[levels(pegiDataFrame$Console)=="Nintendo Wii \\u2013 WiiWare"] <- "Nintendo Wii U"
+
+levels(pegiDataFrame$Console)[levels(pegiDataFrame$Console)=="XBox 360"] <- "Xbox 360"
+levels(pegiDataFrame$Console)[levels(pegiDataFrame$Console)=="XBox One"] <- "Xbox One"
+levels(pegiDataFrame$Console)[levels(pegiDataFrame$Console)=="XBox"] <- "Xbox"
+levels(pegiDataFrame$Console)[levels(pegiDataFrame$Console)=="XBOX 360 Live Arcade"] <- "Xbox 360"
+#case without console, but match with videogame like LEGO Harry Potter Collection
+levels(pegiDataFrame$Console)[levels(pegiDataFrame$Console)==""] <- "Others"
+levels(pegiDataFrame$Console)[levels(is.na(pegiDataFrame$Console))] <- "Others"
+#group console whit few videogames in "Others"
+levels(pegiDataFrame$Console)[levels(pegiDataFrame$Console)=="Arcade"] <- "Others"
+levels(pegiDataFrame$Console)[levels(pegiDataFrame$Console)=="GameCube"] <- "Others"
+levels(pegiDataFrame$Console)[levels(pegiDataFrame$Console)=="DVD Game"] <- "Others"
+levels(pegiDataFrame$Console)[levels(pegiDataFrame$Console)=="Digiblast"] <- "Others"
+levels(pegiDataFrame$Console)[levels(pegiDataFrame$Console)=="Macintosh"] <- "Others"
+levels(pegiDataFrame$Console)[levels(pegiDataFrame$Console)=="Nokia mobile phone"] <- "Others"
+levels(pegiDataFrame$Console)[levels(pegiDataFrame$Console)=="PlayStation Network"] <- "Others"
+levels(pegiDataFrame$Console)[levels(pegiDataFrame$Console)=="Vista"] <- "Others"
+levels(pegiDataFrame$Console)[levels(pegiDataFrame$Console)=="Plug and Play"] <- "Others"
+levels(pegiDataFrame$Console)[levels(pegiDataFrame$Console)=="Tapwave Zodiac"] <- "Others"
+levels(pegiDataFrame$Console)[levels(pegiDataFrame$Console)=="Gizmondo"] <- "Others"
+summary(pegiDataFrame$Console)
+
+levels(salesDataFrame$Console.system)[levels(salesDataFrame$Console.system)=="XBox 360"] <- "Xbox 360"
+levels(salesDataFrame$Console.system)[levels(salesDataFrame$Console.system)=="XBox One"] <- "Xbox One"
+levels(salesDataFrame$Console.system)[levels(salesDataFrame$Console.system)=="XBox"] <- "Xbox"
+
+#
+# Remove and rename columns
+#
+# remove fields that are not important and produce duplicate
+
+# pegi datset: Remove and rename columns
+str(pegiDataFrame)
+colnames(pegiDataFrame)[5] <- "Release"
+pegiDataFrame$Platform <- NULL
+pegiDataFrame$Publisher <- NULL
+pegiDataFrame$Descriptor <- NULL
+#pegiDataFrame$Release.Date <- NULL
+pegiDataFrame$Consumer.Advice <- NULL
+#there are clone records, need to eliminate
+pegiDataFrame <- unique(pegiDataFrame)
+
+# vgchartz datset: Remove and rename columns
+str(salesDataFrame)
+colnames(salesDataFrame)
+colnames(salesDataFrame)[1] <- "Title"
+colnames(salesDataFrame)[6] <- "North_America"
+colnames(salesDataFrame)[9] <- "Rest_of_World"
+colnames(salesDataFrame)[10] <- "Global_sales"
+colnames(salesDataFrame)[11] <- "Console"
+salesDataFrame$Game <- NULL
+
+library(dplyr)
+mergedDataFrame <- left_join(pegiDataFrame, 
+                             salesDataFrame, 
+                             copy = TRUE,
+                             by = c("TITTLE" = "TITTLE"))
+
+# remove columns will not use
+str(mergedDataFrame)
+colnames(mergedDataFrame)
+mergedDataFrame$Console.x <- NULL
+mergedDataFrame$TITTLE <- NULL
+mergedDataFrame$Title.y <- NULL
+mergedDataFrame$North_America <- NULL
+mergedDataFrame$Europe <- NULL
+mergedDataFrame$Japan <- NULL
+mergedDataFrame$Rest_of_World <- NULL
+mergedDataFrame$Global_sales <- NULL
+mergedDataFrame$Console.y <- NULL
+mergedDataFrame$TITTLE_URL <- NULL
+
+p <- mergedDataFrame[!is.na(mergedDataFrame$Genre),] 
+
+#
+# 3 Predictive model
+#
+
+#
+# have the column factor ratings orderer
+# preparing the training data and test data
+p$Rating <- as.factor(p$Rating)
+#set seed always in 100
+set.seed(100)
+#training data set will be 70% of the pegi data frame
+trainingRows <- sample(1:nrow(p), 0.7 * nrow(p))
+trainingData <- p[trainingRows, ]
+testData <- p[-trainingRows, ]
+#str(trainingData)
+
+#print info about training and test dataset
+printratinginfo(trainingData)
+printratinginfo(testData)
+str(trainingData)
+trainingData$Genre <- as.character(trainingData$Genre)
+trainingData$Genre <- factor(trainingData$Genre)
+#
+# building the model
+library(MASS)
+polrMod <- polr(Rating ~ Violence + Drugs + BadLanguage + Sex + Fear + Gambling + Genre, data=trainingData)
+summary(polrMod)
+
+
+# make predictions with the model using the testing set
+predictedRatings <- predict(polrMod, testData)
+testData$predicted <- predictedRatings
+head(predictedRatings)
+
+# predict the probabilites
+predictedRatingsProbabilities <- predict(polrMod, testData, type="p")  
+head(predictedRatingsProbabilities)
+
+## Confusion matrix and misclassification error
+t <- table(testData$Rating, testData$predicted)
+t
+mean(as.character(testData$Rating) != as.character(testData$predicted))  
+# misclassification error
+printratinginfo(testData)
+
+barplot(t, main="3th Model predictions Distribution",
+        xlab="PEGI Ratings",
+        ylab="Numbers of predictions",
+        col=ratingColors,
+        beside=TRUE)
+
+
+# Again the second model with the training test of the third
+trainingData$weight <- 1 
+trainingData$weight[trainingData$Fear == "Y"] <- 5
+trainingData$weight[trainingData$Sex == "Y"] <- 2
+trainingData$weight[trainingData$Drugs == "Y"] <- 2
+library(MASS)
+polrMod <- polr(Rating ~ Violence + Drugs + BadLanguage + Sex + Fear + Gambling , weights = weight,  data=trainingData)
+summary(polrMod)
+
+
+# make predictions with the model using the testing set
+predictedRatings <- predict(polrMod, testData)
+testData$predicted <- predictedRatings
+head(predictedRatings)
+
+# predict the probabilites
+predictedRatingsProbabilities <- predict(polrMod, testData, type="p")  
+head(predictedRatingsProbabilities)
+
+## Confusion matrix and misclassification error
+t <- table(testData$Rating, testData$predicted)
+t
+mean(as.character(testData$Rating) != as.character(testData$predicted))  
+# misclassification error
+printratinginfo(testData)
+
+barplot(t, main="3th Model predictions Distribution",
+        xlab="PEGI Ratings",
+        ylab="Numbers of predictions",
+        col=ratingColors,
+        beside=TRUE)
+
